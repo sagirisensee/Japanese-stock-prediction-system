@@ -5,7 +5,8 @@
       "Bash(chmod:*)",
       "Bash(ls:*)",
       "Bash(tree:*)",
-      "Bash(tee:*)"
+      "Bash(tee:*)",
+      "Bash(./push_results.sh)"
     ]
   }
 }
