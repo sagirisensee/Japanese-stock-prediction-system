@@ -1,112 +1,175 @@
 #!/bin/bash
-# 推送预测结果到results分支（适用于worktree模式）
+# 推送预测结果到results分支
+# 智能模式：自动检测worktree或普通模式
 
 set -e
 
-echo "🚀 推送结果到results分支（worktree模式）..."
+echo "🚀 推送结果到results分支..."
 
 # 定义路径
 MAIN_DIR=$(pwd)
-RESULTS_DIR="../news-results"
+RESULTS_WORKTREE="../news-results"
+CURRENT_BRANCH=$(git branch --show-current)
 
-# 检查results工作树是否存在
-if [ ! -d "$RESULTS_DIR" ]; then
-    echo "❌ 找不到results工作树: $RESULTS_DIR"
-    echo "   请先创建: git worktree add ../news-results results"
-    exit 1
+# 检测模式
+USE_WORKTREE=false
+if [ -d "$RESULTS_WORKTREE" ] && git worktree list | grep -q "news-results"; then
+    USE_WORKTREE=true
+    echo "📋 模式: Worktree"
+else
+    echo "📋 模式: Git Checkout"
 fi
 
+# ===== 收集文件到临时目录 =====
+TEMP_DIR=$(mktemp -d)
 echo "📦 准备结果文件..."
 
-# 计数器
 PRED_COUNT=0
 REPORT_COUNT=0
 BACKTEST_COUNT=0
 
-# 1. 检查预测文件
+# 1. 复制预测文件
 if ls predictions/prediction_*.json 1> /dev/null 2>&1; then
-    PRED_COUNT=$(ls predictions/prediction_*.json 2>/dev/null | wc -l | tr -d ' ')
+    mkdir -p "$TEMP_DIR/predictions"
+    cp predictions/prediction_*.json "$TEMP_DIR/predictions/"
+    PRED_COUNT=$(ls "$TEMP_DIR/predictions"/prediction_*.json 2>/dev/null | wc -l | tr -d ' ')
     echo "   ✓ 找到 $PRED_COUNT 个预测文件"
 else
     echo "   ⚠️  没有找到预测文件"
 fi
 
-# 2. 检查报告目录
+# 2. 复制报告目录
 if ls -d report_* 1> /dev/null 2>&1; then
-    REPORT_COUNT=$(ls -d report_* 2>/dev/null | wc -l | tr -d ' ')
+    mkdir -p "$TEMP_DIR/reports"
+    for dir in report_*; do
+        if [ -d "$dir" ]; then
+            cp -r "$dir" "$TEMP_DIR/reports/"
+        fi
+    done
+    REPORT_COUNT=$(ls -d "$TEMP_DIR/reports"/report_* 2>/dev/null | wc -l | tr -d ' ')
     echo "   ✓ 找到 $REPORT_COUNT 个报告目录"
 else
     echo "   ⚠️  没有找到报告目录"
 fi
 
-# 3. 检查回测结果
+# 3. 复制回测结果
 if ls backtest_result_*.json 1> /dev/null 2>&1; then
-    BACKTEST_COUNT=$(ls backtest_result_*.json 2>/dev/null | wc -l | tr -d ' ')
+    mkdir -p "$TEMP_DIR/backtest_results"
+    cp backtest_result_*.json "$TEMP_DIR/backtest_results/"
+    BACKTEST_COUNT=$(ls "$TEMP_DIR/backtest_results"/backtest_result_*.json 2>/dev/null | wc -l | tr -d ' ')
     echo "   ✓ 找到 $BACKTEST_COUNT 个回测结果"
 else
     echo "   ⚠️  没有找到回测结果"
 fi
 
-# 如果没有任何文件，退出
+# 检查是否有文件
 if [ $PRED_COUNT -eq 0 ] && [ $REPORT_COUNT -eq 0 ] && [ $BACKTEST_COUNT -eq 0 ]; then
     echo ""
     echo "❌ 没有找到任何结果文件，跳过推送"
+    rm -rf "$TEMP_DIR"
     exit 0
 fi
 
 echo ""
-echo "📥 复制到results工作树..."
 
-# 清空results目录的旧文件
-rm -rf "$RESULTS_DIR/predictions"/* "$RESULTS_DIR/reports"/* "$RESULTS_DIR/backtest_results"/* 2>/dev/null || true
+# ===== 根据模式推送 =====
+if [ "$USE_WORKTREE" = true ]; then
+    # === Worktree 模式 ===
+    echo "📥 复制到results工作树..."
 
-# 复制预测文件
-if [ $PRED_COUNT -gt 0 ]; then
-    mkdir -p "$RESULTS_DIR/predictions"
-    cp predictions/prediction_*.json "$RESULTS_DIR/predictions/"
-    echo "   ✓ 已复制 $PRED_COUNT 个预测文件"
-fi
+    # 清空旧文件
+    rm -rf "$RESULTS_WORKTREE/predictions"/* "$RESULTS_WORKTREE/reports"/* "$RESULTS_WORKTREE/backtest_results"/* 2>/dev/null || true
 
-# 复制报告目录
-if [ $REPORT_COUNT -gt 0 ]; then
-    mkdir -p "$RESULTS_DIR/reports"
-    for dir in report_*; do
-        if [ -d "$dir" ]; then
-            cp -r "$dir" "$RESULTS_DIR/reports/"
-        fi
-    done
-    echo "   ✓ 已复制 $REPORT_COUNT 个报告目录"
-fi
+    # 复制文件
+    if [ $PRED_COUNT -gt 0 ]; then
+        mkdir -p "$RESULTS_WORKTREE/predictions"
+        cp -r "$TEMP_DIR/predictions"/* "$RESULTS_WORKTREE/predictions/"
+        echo "   ✓ 已复制 $PRED_COUNT 个预测文件"
+    fi
 
-# 复制回测结果
-if [ $BACKTEST_COUNT -gt 0 ]; then
-    mkdir -p "$RESULTS_DIR/backtest_results"
-    cp backtest_result_*.json "$RESULTS_DIR/backtest_results/"
-    echo "   ✓ 已复制 $BACKTEST_COUNT 个回测结果"
-fi
+    if [ $REPORT_COUNT -gt 0 ]; then
+        mkdir -p "$RESULTS_WORKTREE/reports"
+        cp -r "$TEMP_DIR/reports"/* "$RESULTS_WORKTREE/reports/"
+        echo "   ✓ 已复制 $REPORT_COUNT 个报告目录"
+    fi
 
-# 进入results目录提交
-cd "$RESULTS_DIR"
+    if [ $BACKTEST_COUNT -gt 0 ]; then
+        mkdir -p "$RESULTS_WORKTREE/backtest_results"
+        cp -r "$TEMP_DIR/backtest_results"/* "$RESULTS_WORKTREE/backtest_results/"
+        echo "   ✓ 已复制 $BACKTEST_COUNT 个回测结果"
+    fi
 
-# 检查是否有变化
-if [ -n "$(git status --porcelain)" ]; then
-    echo ""
-    echo "📊 提交更新..."
-    git add predictions/ reports/ backtest_results/
-    git commit -m "Update: $(date '+%Y-%m-%d %H:%M:%S')"
+    # 提交
+    cd "$RESULTS_WORKTREE"
+    if [ -n "$(git status --porcelain)" ]; then
+        echo ""
+        echo "📊 提交更新..."
+        git add predictions/ reports/ backtest_results/
+        git commit -m "Update: $(date '+%Y-%m-%d %H:%M:%S')"
 
-    echo "⬆️  推送到GitHub..."
-    git push origin results
+        echo "⬆️  推送到GitHub..."
+        git push origin results
 
-    echo "✅ 推送成功"
+        echo "✅ 推送成功"
+    else
+        echo "ℹ️  没有变化，跳过提交"
+    fi
+
+    cd "$MAIN_DIR"
+
 else
+    # === Git Checkout 模式 ===
+    echo "📝 切换到results分支..."
+    git checkout results
+
+    # 清空旧文件
+    rm -rf predictions/* reports/* backtest_results/* 2>/dev/null || true
+
+    echo "📥 复制结果文件..."
+
+    # 复制文件
+    if [ $PRED_COUNT -gt 0 ]; then
+        mkdir -p predictions
+        cp -r "$TEMP_DIR/predictions"/* predictions/
+        echo "   ✓ 已复制 $PRED_COUNT 个预测文件"
+    fi
+
+    if [ $REPORT_COUNT -gt 0 ]; then
+        mkdir -p reports
+        cp -r "$TEMP_DIR/reports"/* reports/
+        echo "   ✓ 已复制 $REPORT_COUNT 个报告目录"
+    fi
+
+    if [ $BACKTEST_COUNT -gt 0 ]; then
+        mkdir -p backtest_results
+        cp -r "$TEMP_DIR/backtest_results"/* backtest_results/
+        echo "   ✓ 已复制 $BACKTEST_COUNT 个回测结果"
+    fi
+
+    # 提交
+    if [ -n "$(git status --porcelain)" ]; then
+        echo ""
+        echo "📊 提交更新..."
+        git add predictions/ reports/ backtest_results/
+        git commit -m "Update: $(date '+%Y-%m-%d %H:%M:%S')"
+
+        echo "⬆️  推送到GitHub..."
+        git push origin results
+
+        echo "✅ 推送成功"
+    else
+        echo ""
+        echo "ℹ️  没有变化，跳过提交"
+    fi
+
+    # 切回原分支
     echo ""
-    echo "ℹ️  没有变化，跳过提交"
+    echo "🔙 切回 $CURRENT_BRANCH 分支..."
+    git checkout "$CURRENT_BRANCH"
 fi
 
-# 返回主目录
-cd "$MAIN_DIR"
+# 清理临时目录
+rm -rf "$TEMP_DIR"
 
 echo ""
 echo "✅ 完成！"
-echo "   查看结果: cd $RESULTS_DIR && ls predictions/ reports/"
