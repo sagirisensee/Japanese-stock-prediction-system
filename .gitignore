@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# 敏感配置
+.env
+
+# 运行结果（不提交到主分支）
+predictions/
+!predictions/.gitkeep
+report_*/
+backtest_result_*.json
+weekend_cache/
+logs/
+*.log
+
+# 系统文件
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# 测试文件
+test_*.py
+!test_fetch.py
+!test_backtest_logic.py
