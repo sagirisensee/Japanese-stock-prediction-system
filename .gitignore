@@ -31,8 +31,3 @@ logs/
 # Jupyter
 .ipynb_checkpoints/
 *.ipynb
-
-# 测试文件
-test_*.py
-!test_fetch.py
-!test_backtest_logic.py

@@ -303,25 +303,12 @@ def extract_prediction(report_text):
 def save_prediction(date_str, target_date, report, prediction, news_count, is_weekend_data=False):
     """
     保存预测数据，格式化供回测使用
-    如果当天已有预测，会自动覆盖（备份旧版本）
+    同一天多次运行会直接覆盖（不保留备份）
     """
     prediction_file = f"./predictions/prediction_{date_str}.json"
     os.makedirs("./predictions", exist_ok=True)
 
-    # 如果文件已存在，先备份
-    if os.path.exists(prediction_file):
-        backup_dir = "./predictions/backup"
-        os.makedirs(backup_dir, exist_ok=True)
-
-        # 备份文件名包含时间戳
-        backup_time = datetime.now().strftime('%H%M%S')
-        backup_file = f"{backup_dir}/prediction_{date_str}_backup_{backup_time}.json"
-
-        import shutil
-        shutil.copy2(prediction_file, backup_file)
-        print(f"⚠️  检测到已有预测，已备份到: {backup_file}")
-
-    # 保存新预测（覆盖旧的）
+    # 直接保存（覆盖旧的）
     data = {
         "date": date_str,
         "target_date": target_date,
@@ -330,15 +317,13 @@ def save_prediction(date_str, target_date, report, prediction, news_count, is_we
         "prediction": prediction,
         "full_report": report,
         "timestamp": datetime.now().isoformat(),
-        "version": "latest"  # 标记为最新版本
+        "version": "latest"
     }
 
     with open(prediction_file, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
     print(f"✅ 预测数据已保存: {prediction_file}")
-    print(f"   时间戳: {data['timestamp']}")
-    print(f"   版本: 最新 (旧版本已备份)")
 
 # 8. 周末模式：累积新闻
 def handle_weekend_mode():
