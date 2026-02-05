@@ -1,0 +1,20 @@
+{
+  "summary": {
+    "total_predictions": 1,
+    "correct_predictions": 1,
+    "accuracy": 100.0,
+    "average_return": 2.79,
+    "total_return": 2.79
+  },
+  "details": [
+    {
+      "date": "2026-02-05",
+      "target_date": "2026-02-06",
+      "stock_code": "7011.T",
+      "prediction": "看涨",
+      "actual_change": 2.79,
+      "is_correct": true,
+      "return_rate": 2.79
+    }
+  ]
+}
