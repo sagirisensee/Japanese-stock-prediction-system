@@ -71,7 +71,7 @@ def fetch_80_titles():
     titles_pool = []
     for page in range(1, 6):
         try:
-            res = requests.get(f"{url}?page={page}", headers=headers, timeout=10)
+            res = requests.get(f"{url}?page={page}", headers=headers, timeout=30)
             soup = BeautifulSoup(res.text, 'html.parser')
             news_items = soup.select('a[href*="/news/detail/"]')
             for a in news_items:
@@ -99,7 +99,7 @@ def gemini_stage1_filter(titles_list, target_count=20):
     prompt = f"你是操盘手。从以下标题中选出影响明日股市的 {target_count} 条，只返回 ID 列表 [1, 2, 3]：\n{context}"
 
     try:
-        res = requests.post(url, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=60)
+        res = requests.post(url, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=300)
         if res.status_code != 200:
             print(f"❌ Gemini 初筛请求失败，状态码: {res.status_code}")
             sys.exit(1)
@@ -167,7 +167,7 @@ def qwen_summarize(title, content, max_retries=3):
     for attempt in range(max_retries):
         try:
             res = requests.post("https://api.siliconflow.cn/v1/chat/completions",
-                              json=payload, headers=headers, timeout=30)
+                              json=payload, headers=headers, timeout=300)
             if res.status_code == 200:
                 return res.json()['choices'][0]['message']['content']
             else:
