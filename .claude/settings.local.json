@@ -6,7 +6,10 @@
       "Bash(ls:*)",
       "Bash(tree:*)",
       "Bash(tee:*)",
-      "Bash(./push_results.sh)"
+      "Bash(./push_results.sh)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)"
     ]
   }
 }

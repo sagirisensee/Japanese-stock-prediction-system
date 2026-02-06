@@ -77,9 +77,7 @@ if [ "$USE_WORKTREE" = true ]; then
     # === Worktree 模式 ===
     echo "📥 复制到results工作树..."
 
-    # 清空旧文件
-    rm -rf "$RESULTS_WORKTREE/predictions"/* "$RESULTS_WORKTREE/reports"/* "$RESULTS_WORKTREE/backtest_results"/* 2>/dev/null || true
-
+    # 增量追加文件（不清空历史）
     # 复制文件
     if [ $PRED_COUNT -gt 0 ]; then
         mkdir -p "$RESULTS_WORKTREE/predictions"
@@ -122,9 +120,7 @@ else
     echo "📝 切换到results分支..."
     git checkout results
 
-    # 清空旧文件
-    rm -rf predictions/* reports/* backtest_results/* 2>/dev/null || true
-
+    # 增量追加文件（不清空历史）
     echo "📥 复制结果文件..."
 
     # 复制文件
