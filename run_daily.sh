@@ -18,6 +18,19 @@ echo "🌿 当前分支: $(git branch --show-current 2>/dev/null || echo 'N/A')"
 echo "=================================================="
 echo ""
 
+# 检测并激活虚拟环境
+if [ -d "venv" ] && [ -f "venv/bin/activate" ]; then
+    echo "🐍 激活虚拟环境..."
+    source venv/bin/activate
+    echo "✅ Python: $(which python3)"
+    echo "   版本: $(python3 --version)"
+else
+    echo "⚠️  未找到 venv，使用系统 Python"
+    echo "   Python: $(which python3)"
+    echo "   版本: $(python3 --version 2>/dev/null || echo '未安装')"
+fi
+echo ""
+
 # 确保在 main 分支上
 CURRENT_BRANCH=$(git branch --show-current 2>/dev/null)
 if [ "$CURRENT_BRANCH" != "main" ]; then

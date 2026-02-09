@@ -31,10 +31,34 @@ echo ""
 
 # 3. Python 环境
 echo "3️⃣ Python 环境"
-if command -v python3 &> /dev/null; then
-    echo "   ✅ Python3: $(python3 --version)"
+
+# 检查虚拟环境
+if [ -d "venv" ] && [ -f "venv/bin/activate" ]; then
+    echo "   ✅ 虚拟环境 (venv/)"
+    echo "      激活后的 Python: venv/bin/python3"
+    if [ -f "venv/bin/python3" ]; then
+        VENV_VERSION=$(venv/bin/python3 --version 2>&1)
+        echo "      版本: $VENV_VERSION"
+
+        # 检查关键依赖
+        echo "      关键依赖:"
+        for pkg in "bs4" "requests" "yfinance"; do
+            if venv/bin/python3 -c "import $pkg" 2>/dev/null; then
+                echo "         ✅ $pkg"
+            else
+                echo "         ❌ $pkg (未安装)"
+            fi
+        done
+    fi
 else
-    echo "   ❌ 未找到 Python3"
+    echo "   ⚠️  未找到虚拟环境"
+fi
+
+# 系统 Python
+if command -v python3 &> /dev/null; then
+    echo "   ✅ 系统 Python3: $(python3 --version)"
+else
+    echo "   ❌ 未找到系统 Python3"
 fi
 
 if command -v pip3 &> /dev/null; then
