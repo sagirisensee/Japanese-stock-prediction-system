@@ -20,6 +20,9 @@ weekend_cache/
 logs/
 *.log
 
+# 累计统计文件（保留在本地，不同步）
+backtest_cumulative_stats.json
+
 # 系统文件
 .DS_Store
 .vscode/
