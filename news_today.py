@@ -28,7 +28,18 @@ def get_save_dir():
 
 def is_weekend():
     """判断今天是否是周五/周六/周日"""
-    return datetime.now().weekday() in [4, 5, 6]  # 4=周五, 5=周六, 6=周日
+    weekday = datetime.now().weekday()
+    hour = datetime.now().hour
+
+    # 周五/周六/周日是周末
+    if weekday in [4, 5, 6]:
+        return True
+
+    # 周一凌晨0-3点也算周末模式（用于处理周末累积的新闻）
+    if weekday == 0 and hour < 3:
+        return True
+
+    return False
 
 def get_next_trading_day(from_date=None):
     """获取下一个交易日"""
@@ -351,18 +362,22 @@ def handle_weekend_mode():
 
         print(f"✅ 周末模式：已累积 {len(today_titles)} 条新闻（总计 {len(cached_data['titles'])} 条）")
 
-    # 检查是否到了周日晚上或周一凌晨，该处理了
+    # 检查是否到了周一凌晨，该处理了
     weekday = datetime.now().weekday()
     hour = datetime.now().hour
 
-    # 周日晚上20点后 或 周一凌晨
-    should_process = (weekday == 6 and hour >= 20) or (weekday == 0 and hour < 3)
+    # 周一凌晨0-3点，处理周末累积的新闻
+    should_process = (weekday == 0 and hour < 3)
 
-    if should_process and len(cached_data["titles"]) > 0:
+    if should_process and len(cached_data["titles"]) >= 160:  # 至少要有2天的新闻（周六+周日）
         print(f"🎯 周末模式：开始处理累积的 {len(cached_data['titles'])} 条新闻...")
         return cached_data["titles"], True, cached_data["dates"][0]
+    elif should_process and len(cached_data["titles"]) > 0:
+        # 如果周一了但新闻数量不够（可能周末没正常运行），也处理
+        print(f"⚠️  周末新闻数量不足（{len(cached_data['titles'])} 条），仍然进行处理...")
+        return cached_data["titles"], True, cached_data["dates"][0]
     else:
-        print(f"⏳ 周末模式：等待更多数据... (当前 {len(cached_data['titles'])} 条)")
+        print(f"⏳ 周末模式：等待更多数据... (当前 {len(cached_data['titles'])} 条，目标 ≥160)")
         return None, False, None
 
 # --- 执行主程序 ---
