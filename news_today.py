@@ -27,15 +27,20 @@ def get_save_dir():
     return folder
 
 def is_weekend():
-    """判断今天是否是周五/周六/周日"""
+    """判断是否应该启用周末模式（累积新闻而不是立即处理）"""
     weekday = datetime.now().weekday()
     hour = datetime.now().hour
 
-    # 周五/周六/周日是周末
-    if weekday in [4, 5, 6]:
+    # 周六、周日全天是周末模式
+    if weekday in [5, 6]:
         return True
 
-    # 周一凌晨0-3点也算周末模式（用于处理周末累积的新闻）
+    # 周五只有 06:00 之后才是周末模式
+    # 周五凌晨 00:05 还是工作日模式（处理周四新闻，预测周五股市）
+    if weekday == 4 and hour >= 6:
+        return True
+
+    # 周一凌晨 0-3 点是周末模式（处理周末累积的新闻）
     if weekday == 0 and hour < 3:
         return True
 

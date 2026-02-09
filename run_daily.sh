@@ -42,6 +42,12 @@ if [ "$CURRENT_BRANCH" != "main" ]; then
     echo "✅ 已切换到 main 分支"
 fi
 
+# 确保必要的目录存在
+echo "📁 检查目录..."
+mkdir -p predictions weekend_cache
+echo "✅ 目录就绪"
+echo ""
+
 # 1. 运行历史预测回测
 echo "📊 正在进行历史预测回测..."
 if [ -f "backtest.py" ]; then
