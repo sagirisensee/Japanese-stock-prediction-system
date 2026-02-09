@@ -2,7 +2,7 @@
 # 推送预测结果到results分支
 # 智能模式：自动检测worktree或普通模式
 
-set -e
+# 注意：不使用 set -e，因为需要确保在任何情况下都能切回 main 分支
 
 echo "🚀 推送结果到results分支..."
 
@@ -102,13 +102,23 @@ if [ "$USE_WORKTREE" = true ]; then
     if [ -n "$(git status --porcelain)" ]; then
         echo ""
         echo "📊 提交更新..."
-        git add predictions/ reports/ backtest_results/
-        git commit -m "Update: $(date '+%Y-%m-%d %H:%M:%S')"
+        git add predictions/ reports/ backtest_results/ 2>/dev/null || true
 
-        echo "⬆️  推送到GitHub..."
-        git push origin results
+        # 检查是否有 staged changes
+        if git diff --cached --quiet; then
+            echo "ℹ️  没有需要提交的更改"
+        else
+            git commit -m "Update: $(date '+%Y-%m-%d %H:%M:%S')" || {
+                echo "⚠️  提交失败"
+            }
 
-        echo "✅ 推送成功"
+            echo "⬆️  推送到GitHub..."
+            git push origin results || {
+                echo "⚠️  推送失败"
+            }
+
+            echo "✅ 推送成功"
+        fi
     else
         echo "ℹ️  没有变化，跳过提交"
     fi
@@ -118,7 +128,10 @@ if [ "$USE_WORKTREE" = true ]; then
 else
     # === Git Checkout 模式 ===
     echo "📝 切换到results分支..."
-    git checkout results
+    git checkout results || {
+        echo "❌ 无法切换到 results 分支"
+        exit 1
+    }
 
     # 增量追加文件（不清空历史）
     echo "📥 复制结果文件..."
@@ -142,26 +155,38 @@ else
         echo "   ✓ 已复制 $BACKTEST_COUNT 个回测结果"
     fi
 
-    # 提交
+    # 提交（使用 trap 确保切回分支）
+    trap "git checkout $CURRENT_BRANCH 2>/dev/null || git checkout main 2>/dev/null" EXIT
+
     if [ -n "$(git status --porcelain)" ]; then
         echo ""
         echo "📊 提交更新..."
-        git add predictions/ reports/ backtest_results/
-        git commit -m "Update: $(date '+%Y-%m-%d %H:%M:%S')"
+        git add predictions/ reports/ backtest_results/ 2>/dev/null || true
 
-        echo "⬆️  推送到GitHub..."
-        git push origin results
+        # 检查是否有 staged changes
+        if git diff --cached --quiet; then
+            echo "ℹ️  没有需要提交的更改"
+        else
+            git commit -m "Update: $(date '+%Y-%m-%d %H:%M:%S')" || {
+                echo "⚠️  提交失败，但会继续切回分支"
+            }
 
-        echo "✅ 推送成功"
+            echo "⬆️  推送到GitHub..."
+            git push origin results || {
+                echo "⚠️  推送失败"
+            }
+
+            echo "✅ 推送成功"
+        fi
     else
         echo ""
         echo "ℹ️  没有变化，跳过提交"
     fi
 
-    # 切回原分支
+    # trap 会自动执行切回分支，但我们显式执行一次
     echo ""
     echo "🔙 切回 $CURRENT_BRANCH 分支..."
-    git checkout "$CURRENT_BRANCH"
+    git checkout "$CURRENT_BRANCH" || git checkout main
 fi
 
 # 清理临时目录
