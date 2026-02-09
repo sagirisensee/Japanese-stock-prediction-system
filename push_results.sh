@@ -127,9 +127,28 @@ if [ "$USE_WORKTREE" = true ]; then
 
 else
     # === Git Checkout 模式 ===
+
+    # ⚠️ 重要：备份 main 分支上的文件（因为 results 分支会覆盖它们）
+    BACKUP_DIR=$(mktemp -d)
+    echo "📦 备份 main 分支文件..."
+    if [ -d "predictions" ] && [ "$(ls -A predictions 2>/dev/null)" ]; then
+        cp -r predictions "$BACKUP_DIR/"
+        echo "   ✓ 备份了 predictions/"
+    fi
+    if [ -d "weekend_cache" ] && [ "$(ls -A weekend_cache 2>/dev/null)" ]; then
+        cp -r weekend_cache "$BACKUP_DIR/"
+        echo "   ✓ 备份了 weekend_cache/"
+    fi
+
     echo "📝 切换到results分支..."
     git checkout results || {
         echo "❌ 无法切换到 results 分支"
+        # 恢复备份
+        if [ -d "$BACKUP_DIR/predictions" ]; then
+            mkdir -p predictions
+            cp -r "$BACKUP_DIR/predictions"/* predictions/ 2>/dev/null
+        fi
+        rm -rf "$BACKUP_DIR"
         exit 1
     }
 
@@ -187,6 +206,22 @@ else
     echo ""
     echo "🔙 切回 $CURRENT_BRANCH 分支..."
     git checkout "$CURRENT_BRANCH" || git checkout main
+
+    # 恢复备份的文件
+    echo "📥 恢复 main 分支文件..."
+    if [ -d "$BACKUP_DIR/predictions" ]; then
+        mkdir -p predictions
+        cp -r "$BACKUP_DIR/predictions"/* predictions/ 2>/dev/null
+        echo "   ✓ 恢复了 predictions/"
+    fi
+    if [ -d "$BACKUP_DIR/weekend_cache" ]; then
+        mkdir -p weekend_cache
+        cp -r "$BACKUP_DIR/weekend_cache"/* weekend_cache/ 2>/dev/null
+        echo "   ✓ 恢复了 weekend_cache/"
+    fi
+
+    # 清理备份
+    rm -rf "$BACKUP_DIR"
 fi
 
 # 清理临时目录
