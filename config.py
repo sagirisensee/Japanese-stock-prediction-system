@@ -25,6 +25,11 @@ class Config:
     QWEN_API_KEY = os.getenv('QWEN_API_KEY', '')
     GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
 
+    # --- Telegram 配置 ---
+    TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN', '')
+    TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID', '')
+    # --------------------------
+
     # === Gemini 配置 ===
     GEMINI_MODEL_ID = os.getenv('GEMINI_MODEL_ID', 'models/gemini-2.5-flash')
     GEMINI_TIMEOUT = int(os.getenv('GEMINI_TIMEOUT', '300'))
@@ -46,12 +51,18 @@ class Config:
         if not cls.GEMINI_API_KEY:
             errors.append("❌ GEMINI_API_KEY 未设置")
 
+        # --- 新增：验证 Telegram 配置 ---
+        if not cls.TELEGRAM_TOKEN:
+            errors.append("❌ TELEGRAM_TOKEN 未设置")
+        if not cls.TELEGRAM_CHAT_ID:
+            errors.append("❌ TELEGRAM_CHAT_ID 未设置")
+        # ------------------------------
+
         if errors:
             print("\n配置错误:")
             for error in errors:
                 print(f"  {error}")
             print("\n请设置环境变量或创建 .env 文件")
-            print("参考 .env.example 文件")
             return False
 
         return True
@@ -66,10 +77,13 @@ class Config:
         if show_secrets:
             print(f"QWEN_API_KEY: {cls.QWEN_API_KEY}")
             print(f"GEMINI_API_KEY: {cls.GEMINI_API_KEY}")
+            print(f"TELEGRAM_TOKEN: {cls.TELEGRAM_TOKEN}")
         else:
             print(f"QWEN_API_KEY: {'*' * 20 if cls.QWEN_API_KEY else '未设置'}")
             print(f"GEMINI_API_KEY: {'*' * 20 if cls.GEMINI_API_KEY else '未设置'}")
+            print(f"TELEGRAM_TOKEN: {'*' * 20 if cls.TELEGRAM_TOKEN else '未设置'}")
 
+        print(f"TELEGRAM_CHAT_ID: {cls.TELEGRAM_CHAT_ID}")
         print(f"GEMINI_MODEL_ID: {cls.GEMINI_MODEL_ID}")
         print(f"GEMINI_TIMEOUT: {cls.GEMINI_TIMEOUT}秒")
         print(f"DEBUG: {cls.DEBUG}")

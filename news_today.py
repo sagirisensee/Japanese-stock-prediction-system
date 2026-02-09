@@ -340,8 +340,36 @@ def save_prediction(date_str, target_date, report, prediction, news_count, is_we
         json.dump(data, f, ensure_ascii=False, indent=2)
 
     print(f"✅ 预测数据已保存: {prediction_file}")
+# 8. 发送消息到 Telegram
+def send_telegram_msg(message):
+    """
+    发送消息到 Telegram，如果消息过长则自动拆分。
+    """
+    token = Config.TELEGRAM_TOKEN  # 建议加在你的 Config 类里
+    chat_id = Config.TELEGRAM_CHAT_ID
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    
+    # Telegram 单条消息上限为 4096 字符，安全起见我们按 2000 字拆分
+    max_length = 2000
+    msgs = [message[i:i + max_length] for i in range(0, len(message), max_length)]
+    
+    for i, msg in enumerate(msgs):
+        payload = {
+            "chat_id": chat_id,
+            "text": f"(第{i+1}部分)\n{msg}" if len(msgs) > 1 else msg,
+            "parse_mode": "Markdown"
+        }
+        try:
+            res = requests.post(url, json=payload, timeout=10)
+            if res.status_code != 200:
+                # 如果 Markdown 解析失败（比如报告里有特殊符号），尝试纯文本发送
+                payload.pop("parse_mode")
+                requests.post(url, json=payload, timeout=10)
+            print(f"🚀 Telegram 消息第 {i+1} 部分发送成功")
+        except Exception as e:
+            print(f"❌ TG 发送异常: {e}")
 
-# 8. 周末模式：累积新闻
+# 9. 周末模式：累积新闻
 def handle_weekend_mode():
     """周末模式：累积周五/周六/周日的新闻"""
     cache_file = get_weekend_cache_file()
@@ -464,6 +492,25 @@ if __name__ == "__main__":
             is_weekend_data=is_weekend_data
         )
 
+        # --- 构造并发送 Telegram 消息 ---
+        # 1. 构造精简版头部信息
+        header = f"🔔 *日股交易策略报告* ({target_date})\n"
+        header += "----------------------------\n"
+        
+        # 2. 提取股票简要信息
+        stock_summary = ""
+        if isinstance(prediction, list):
+            for p in prediction:
+                emoji = "🟢" if "涨" in p['direction'] else "🔴"
+                stock_summary += f"{emoji} *{p['stock_code']}* : {p['direction']}\n"
+        elif prediction:
+            emoji = "🟢" if "涨" in prediction['direction'] else "🔴"
+            stock_summary += f"{emoji} *{prediction['stock_code']}* : {prediction['direction']}\n"
+        
+        # 3. 组合完整报告内容并发送
+        full_msg = f"{header}{stock_summary}\n📝 *详细研判报告如下：*\n\n{report}"
+        send_telegram_msg(full_msg)
+        # ----------------------------
         print(f"\n🔥 全流程结束！报告已生成: {report_path}")
         print("-" * 30)
         print(report[:500] + "...")
