@@ -209,7 +209,6 @@ def run_incremental_backtest():
             pred_data = json.load(f)
 
         date = pred_data.get('date')
-        target_date = pred_data.get('target_date')
         prediction_info = pred_data.get('prediction')
 
         if not prediction_info:
@@ -219,7 +218,8 @@ def run_incremental_backtest():
         # 处理预测（支持单个或多个股票）
         predictions_list = [prediction_info] if isinstance(prediction_info, dict) else prediction_info
 
-        print(f"  日期: {date}, 目标: {target_date}")
+        # 修正：预测文件预测的是当天(date)的涨跌，而不是target_date
+        print(f"  预测日期: {date}")
 
         for idx, pred in enumerate(predictions_list, 1):
             stock_code = pred.get('stock_code')
@@ -231,8 +231,8 @@ def run_incremental_backtest():
             if len(predictions_list) > 1:
                 print(f"  股票 {idx}/{len(predictions_list)}: {stock_code}")
 
-            # 获取实际表现
-            actual_change, success = get_stock_performance(stock_code, target_date)
+            # 获取实际表现 - 使用预测日期date而不是target_date
+            actual_change, success = get_stock_performance(stock_code, date)
 
             if not success:
                 print(f"  ⚠️  无法获取数据，跳过")
@@ -262,7 +262,6 @@ def run_incremental_backtest():
             # 记录详细结果（只保留最近的）
             new_results.append({
                 "date": date,
-                "target_date": target_date,
                 "stock_code": stock_code,
                 "prediction": direction,
                 "actual_change": float(actual_change),
